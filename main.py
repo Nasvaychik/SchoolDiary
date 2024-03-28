@@ -1,5 +1,6 @@
 from flet import *
 import flet
+import os
 
 width = 720 * 1.6
 height = 405 * 1.6
@@ -31,14 +32,6 @@ class MenuButton(UserControl):
             #on_hover=self.Hover,
             #animate=Animation(400)
         )
-    #def Hover(self,e):
-        #if self.button.bgcolor != self.hover_color:
-           #self.button.bgcolor = self.hover_color
-            #self.button.blur=Blur(12, 12, BlurTileMode.MIRROR)
-        #else:
-            #self.button.bgcolor = 'transparent'
-            #self.button.blur = None
-        #self.button.update()
 
     def build(self):
         return self.button
@@ -46,8 +39,6 @@ class MenuButton(UserControl):
 class Sidebar(UserControl):
     def __init__(self):
         super().__init__()
-        #self.width = 300
-        #self.height = 500
         self.bgcolor = "#44000000"
         self.menubar = GestureDetector(
             Container(
@@ -94,11 +85,9 @@ class Sidebar(UserControl):
                ),
                 Container(
                     Column([
-                        MenuButton(icons.DASHBOARD_OUTLINED, "Приборные панели", 240,self.bgcolor),
-                        MenuButton(icons.PEOPLE_OUTLINE, "Студенты", 240, self.bgcolor),
-                        MenuButton(icons.ACCOUNT_BOX_OUTLINED, "Оценки", 240, self.bgcolor),
-                        MenuButton(icons.REPORT_OUTLINED, "Проебы", 240, self.bgcolor),
-                        MenuButton(icons.SETTINGS_OUTLINED, "Настройки", 240, self.bgcolor)
+                        ElevatedButton("Студенты", icons.PEOPLE_OUTLINE, icon_color="white", ),
+                        ElevatedButton("Оценки", icons.ACCOUNT_BOX_OUTLINED, icon_color="white"),
+                        ElevatedButton("Заметки", icons.REPORT_OUTLINED, icon_color="white"),
                     ]),
                     padding=padding.only(20),
                 ),
@@ -123,8 +112,6 @@ class Sidebar(UserControl):
             ]),
             width = 240,
             height = 500,
-            left = 50,
-            top = 50,
             border_radius = 6,
             bgcolor=self.bgcolor,
             blur=Blur(12,12,BlurTileMode.MIRROR),
@@ -139,8 +126,6 @@ class Sidebar(UserControl):
         self.body.update()
 
     def update_pos(self,e):
-        self.body.top = max(0, self.body.top + e.delta_y)
-        self.body.left = max(0, self.body.top + e.delta_x)
         self.body.update()
 
     def build(self):
@@ -161,6 +146,64 @@ body = Container(
     height = height
 )
 
+def Students(page:Page):
+    r = flet.Row(wrap=True, scroll="always", expand=True)
+    page.add(r)
+
+    for i in range(5000):
+        r.controls.append(
+            flet.Container(
+                flet.Text(f"Item {i}"),
+                width=100,
+                height=100,
+                alignment=flet.alignment.center,
+                bgcolor=flet.colors.AMBER_100,
+                border=flet.border.all(1, flet.colors.AMBER_400),
+                border_radius=flet.border_radius.all(5),
+            )
+        )
+    page.update()
+
+def Evaluations(page:Page):
+    page.add(
+        flet.DataTable(
+            width=700,
+            bgcolor="yellow",
+            border=flet.border.all(2, "red"),
+            border_radius=10,
+            vertical_lines=flet.border.BorderSide(3, "blue"),
+            horizontal_lines=flet.border.BorderSide(1, "green"),
+            sort_column_index=0,
+            sort_ascending=True,
+            heading_row_color=flet.colors.BLACK12,
+            heading_row_height=100,
+            data_row_color={"hovered": "0x30FF0000"},
+            show_checkbox_column=True,
+            divider_thickness=0,
+            column_spacing=200,
+            columns=[
+                flet.DataColumn(
+                    flet.Text("Column 1"),
+                    on_sort=lambda e: print(f"{e.column_index}, {e.ascending}"),
+                ),
+                flet.DataColumn(
+                    flet.Text("Column 2"),
+                    tooltip="This is a second column",
+                    numeric=True,
+                    on_sort=lambda e: print(f"{e.column_index}, {e.ascending}"),
+                ),
+            ],
+            rows=[
+                flet.DataRow(
+                    [flet.DataCell(flet.Text("A")), flet.DataCell(flet.Text("1"))],
+                    selected=True,
+                    on_select_changed=lambda e: print(f"row select changed: {e.data}"),
+                ),
+                flet.DataRow([flet.DataCell(flet.Text("B")), flet.DataCell(flet.Text("2"))]),
+            ],
+        ),
+    )
+
 def main(page:Page):
     page.window_max_width = width
     page.window_max_height = height
@@ -172,6 +215,48 @@ def main(page:Page):
         body
     )
 
+    def route_change (route):
+        page.views.clear()
+        page.views.append(
+            flet.View(
+                "/",
+                [
+                    flet.Sidebar()
+                ]
+            )
+        )
+
+        page.views.append(
+            View(
+                route='/',
+                controls=[
+                    ElevatedButton(on_click=lambda _: page.go('/Студенты'))
+                ]
+            )
+        )
+
+    #Студенты
+    if page.route == '/Студенты':
+        page.views.append(
+            View(
+                route='/Студенты',
+                controls=[
+                    ElevatedButton(on_click=lambda _: page.go('/'))
+                ]
+            )
+        )
+
+    page.update()
+
+    def view_pop(e: ViewPopEvent) -> None:
+        page.views.pop()
+        top_view: View = page.views[-1]
+        page.go(top_view.route)
+
+    page.on_route_change = route_change
+    page.on_view_pop = view_pop
+    page.go(page.route)
+
     def check_item_clicked(e):
         e.control.checked = not e.control.checked
         page.update()
@@ -179,20 +264,9 @@ def main(page:Page):
     page.appbar = flet.AppBar(
         leading=flet.Icon(flet.icons.PALETTE),
         leading_width=40,
-        title=flet.Text("NavBar"),
+        title=flet.Text("Помошник черта"),
         center_title=False,
         bgcolor='transparent',
-        actions=[
-            flet.PopupMenuButton(
-                items=[
-                    flet.PopupMenuItem(text="Item 1"),
-                    flet.PopupMenuItem(),  # divider
-                    flet.PopupMenuItem(
-                        text="Checked item", checked=False, on_click=check_item_clicked
-                    ),
-                ]
-            ),
-        ],
     )
     page.add(flet.Text("Body!"))
 
